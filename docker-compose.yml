@@ -1,0 +1,39 @@
+version: '3.4'
+
+volumes:
+  mongodb_data:
+    driver: local
+    name: my_mongodb
+  pritunl_data:
+    driver: local
+    name: my_pritunl
+
+services:
+  mongodb:
+    container_name: my_mongodb
+    image: "fscm/mongodb:latest"
+    volumes:
+      - "mongodb_data:/data/mongodb"
+    ports:
+      - "27017:27017"
+    command: ["start"]
+  pritunl:
+    container_name: my_pritunl
+    privileged: true
+    image: "fscm/pritunl:latest"
+    volumes:
+      - "pritunl_data:/data/pritunl"
+    ports:
+      - '80:80'
+      - '443:443'
+      - '1194:1194/udp'
+      - '1194:1194/tcp'
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+    depends_on:
+      - "mongodb"
+    links:
+      - "mongodb"
+    command: ["-m", "mongodb://mongodb:27017/pritunl", "init", "start"]
