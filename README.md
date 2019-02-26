@@ -1,6 +1,6 @@
 # Pritunl for Docker
 
-Docker image that should be used to start an Pritunl server.
+Docker image that should be used to start a Pritunl server.
 
 ## Synopsis
 
@@ -44,8 +44,8 @@ A build example:
 docker build --squash --force-rm --no-cache --quiet --tag johndoe/my_pritunl:latest .
 ```
 
-To clean the _<none>_ image left by the `--squash` option the following command
-can be used:
+To clean the _<none>_ image(s) left by the `--squash` option the following
+command can be used:
 
 ```
 docker rmi `docker images --filter "dangling=true" --quiet`
@@ -79,11 +79,14 @@ the following command:
 docker volume create --name <VOLUME_NAME>
 ```
 
-Two create the two required volumes the following set of commands can be used:
+Two create the required volume the following command can be used:
 
 ```
 docker volume create --name my_pritunl
 ```
+
+**Note:** A local folder can also be used instead of a volume. Use the path of
+the folder in place of the volume name.
 
 #### Configuring the Pritunl Server
 
@@ -103,6 +106,10 @@ An example on how to configure the Pritunl server:
 docker run --volume my_pritunl:/data/pritunl:rw --rm johndoe/my_pritunl:latest -m mongodb://mongodb:27017/pritunl init
 ```
 
+**Note:** This command will output the **SetupKey** and the default
+**Administrator credentials**. Take note of those for later use on the service
+web interface.
+
 #### Start the Pritunl Server
 
 After configuring the Pritunl server the same can now be started.
@@ -110,11 +117,11 @@ After configuring the Pritunl server the same can now be started.
 Starting the Pritunl server can be done with the `start` command.
 
 ```
-docker run --volume <PRITUNL_VOL>:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --cap-add=NET_ADMIN --device=/dev/net/tun <USER>/<IMAGE>:<TAG> start
+docker run --volume <PRITUNL_VOL>:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun <USER>/<IMAGE>:<TAG> start
 ```
 
-The Docker options `--cap-add=NET_ADMIN`, `--device=/dev/net/tun`, and
-`--privileged` are required for the container to be able to start.
+The Docker options `--privileged` and`--device=/dev/net/tun` are required for
+the container to be able to start.
 
 To help managing the container and the Pritunl instance a name can be given to
 the container. To do this use the `--name <NAME>` docker option when starting
@@ -123,7 +130,7 @@ the server
 An example on how the Pritunl service can be started:
 
 ```
-docker run --volume my_pritunl:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --cap-add=NET_ADMIN --device=/dev/net/tun --name my_pritunl johndoe/my_pritunl:latest start
+docker run --volume my_pritunl:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun --name my_pritunl johndoe/my_pritunl:latest start
 ```
 
 To see the output of the container that was started use the following command:
