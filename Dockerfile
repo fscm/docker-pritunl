@@ -5,9 +5,13 @@ ARG GOLANG_VERSION="1.11.5"
 ARG PYTHON_VERSION="2.7.15"
 ARG PRITUNL_VERSION="1.29.1979.98"
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV \
+  LANG=C.UTF-8 \
+  DEBIAN_FRONTEND=noninteractive
 
-COPY files/* /usr/local/bin/
+COPY files/ /root/
+
+WORKDIR /root
 
 RUN \
   apt-get -qq update && \
@@ -20,6 +24,9 @@ RUN \
     libsqlite3-dev libssl-dev libtinfo-dev \
     lsb-release \
     sharutils && \
+# copy scripts
+  install --directory --owner=root --group=root --mode=0755 /build/usr/bin && \
+  install --owner=root --group=root --mode=0755 --target-directory=/build/usr/bin /root/scripts/* && \
   sed -i '/path-include/d' /etc/dpkg/dpkg.cfg.d/90docker-excludes && \
   mkdir -p /build/data/pritunl && \
   mkdir -p /src/apt/dpkg && \
@@ -85,9 +92,7 @@ RUN \
   curl -sL --retry 3 --insecure "https://busybox.net/downloads/binaries/${BUSYBOX_VERSION}-i686/busybox" -o /build/bin/busybox && \
   chmod +x /build/bin/busybox && \
   for p in [ [[ basename cat cp date diff du echo env free grep ip killall less ln ls mkdir mknod mktemp more mv ping ps rm sed sort stty sysctl tr; do ln -s busybox /build/bin/${p}; done && \
-  ln -s /bin/ip /build/sbin/ip && \
-  chmod a+x /usr/local/bin/* && \
-  cp /usr/local/bin/* /build/bin/
+  ln -s /bin/ip /build/sbin/ip
 
 
 
