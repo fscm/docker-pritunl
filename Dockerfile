@@ -1,9 +1,12 @@
-FROM fscm/debian:stretch as build
+FROM fscm/debian:buster as build
 
-ARG BUSYBOX_VERSION="1.30.0"
-ARG GOLANG_VERSION="1.11.5"
-ARG PYTHON_VERSION="2.7.15"
-ARG PRITUNL_VERSION="1.29.1979.98"
+ARG BUSYBOX_VERSION="1.31.0"
+ARG GOLANG_VERSION="1.13.3"
+ARG IPTABLES_VERSION="1.8.3"
+ARG OPENSSL_VERSION="1.1.1d"
+ARG OPENVPN_VERSION="2.4.7"
+ARG PYTHON_VERSION="2.7.17"
+ARG PRITUNL_VERSION="1.29.2232.32"
 
 ENV \
   LANG=C.UTF-8 \
@@ -14,47 +17,144 @@ COPY files/ /root/
 WORKDIR /root
 
 RUN \
+# dependencies
   apt-get -qq update && \
   apt-get -qq -y -o=Dpkg::Use-Pty=0 --no-install-recommends install \
-    autoconf autotools-dev bzip2 curl g++ gcc git make tar \
-    blt-dev tcl-dev tk-dev zlib1g-dev \
-    ca-certificates iptables net-tools openssl openvpn \
-    libbluetooth-dev libbz2-dev libc-dev libdb-dev libexpat1-dev libffi-dev \
-    libgdbm-dev libgpm2 liblzma-dev libncursesw5-dev libreadline-dev \
-    libsqlite3-dev libssl-dev libtinfo-dev \
-    lsb-release \
-    sharutils && \
+    bison \
+    blt-dev \
+    bzip2 \
+    ca-certificates \
+    curl \
+    dpkg-dev \
+    file \
+    flex \
+    gcc \
+    git \
+    libbluetooth-dev \
+    libbz2-dev \
+    libc-dev \
+    libdb-dev \
+    libexpat1-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libgpm2 \
+    liblz4-dev \
+    liblzo2-dev \
+    libmnl-dev \
+    libncurses-dev \
+    libnetfilter-conntrack-dev \
+    libpam0g-dev \
+    libpcap-dev \
+    libpkcs11-helper1-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libtinfo-dev \
+    libtool \
+    make \
+    sharutils \
+    tar \
+    tk-dev \
+    zlib1g-dev \
+    2>&1 > /dev/null && \
+# build structure
+  for folder in bin sbin lib lib64; do install --directory --owner=root --group=root --mode=0755 /build/usr/${folder}; ln -s usr/${folder} /build/${folder}; done && \
+  for folder in tmp data; do install --directory --owner=root --group=root --mode=1777 /build/${folder}; done && \
 # copy scripts
-  install --directory --owner=root --group=root --mode=0755 /build/usr/bin && \
   install --owner=root --group=root --mode=0755 --target-directory=/build/usr/bin /root/scripts/* && \
-  sed -i '/path-include/d' /etc/dpkg/dpkg.cfg.d/90docker-excludes && \
-  mkdir -p /build/data/pritunl && \
-  mkdir -p /src/apt/dpkg && \
-  chmod -R o+rw /src/apt && \
-  cp -r /var/lib/dpkg/* /src/apt/dpkg/ && \
-  cd /src/apt && \
-  apt-get -qq -y -o=Dpkg::Use-Pty=0 download bash ca-certificates iptables net-tools openssl openvpn && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/usr/share*" openssl_*.deb && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/usr/share*" iptables_*.deb && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/etc*" --path-exclude="/usr/share*" bash_*.deb && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/usr/*" --path-include="/usr/sbin*" net-tools_*.deb && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/etc*" --path-exclude="/lib*" --path-exclude="/usr/*" --path-include="/usr/lib*" --path-include="/usr/sbin*" openvpn_*.deb && \
-  dpkg --unpack --force-all --no-triggers --instdir=/build --admindir=/src/apt/dpkg --path-exclude="/etc*" --path-exclude="/usr/sbin*" --path-exclude="/usr/share/*" --path-include="/usr/share/ca-certificates*" ca-certificates_*.deb && \
-  ln -s /bin/bash /build/bin/sh && \
-  for f in `find /build -name '*.dpkg-new'`; do mv "${f}" "${f%.dpkg-new}"; done && \
-  update-ca-certificates --etccertsdir /build/etc/ssl/certs/ && \
+# busybox
+  curl --silent --location --retry 3 "https://busybox.net/downloads/binaries/${BUSYBOX_VERSION}-i686-uclibc/busybox" \
+    -o /build/usr/bin/busybox && \
+  chmod +x /build/usr/bin/busybox && \
+  for p in [ arp basename cat cp date diff dirname du env free getopt grep gzip hostname id ifconfig ip ipaddr iptunnel kill killall less ln ls mkdir mknod mktemp more mv nameif netstat pgrep ping ps pwd rm route sed sh slattach sort stty sysctl tar tr wget; do ln /build/usr/bin/busybox /build/usr/bin/${p}; done && \
+  for p in arp ifconfig ip ipaddr iptunnel nameif netstat route slattach; do ln -s /build/usr/bin/busybox /usr/bin/${p}; done && \
+# openssl
+  install --directory /src/openssl && \
+  curl --silent --location --retry 3 "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
+    | tar xz --no-same-owner --strip-components=1 -C /src/openssl && \
+  cd /src/openssl && \
+  ./config -Wl,-rpath=/usr/lib/x86_64-linux-gnu \
+    --prefix="/usr" \
+    --openssldir="/etc/ssl" \
+    --libdir="/usr/lib/$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+    no-idea \
+    no-mdc2 \
+    no-rc5 \
+    no-zlib \
+    no-ssl3 \
+    no-ssl3-method \
+    enable-rfc3779 \
+    enable-cms \
+    enable-ec_nistp_64_gcc_128 && \
+  make --silent -j "$(getconf _NPROCESSORS_ONLN)" && \
+  make --silent install_sw install_ssldirs DESTDIR=/build INSTALL='install -p' && \
+  find /build -depth -type f -name c_rehash -delete && \
+  find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
   cd - && \
-  mkdir -p /src/python && \
-  curl -sL --retry 3 --insecure "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-${PYTHON_VERSION}.tgz" | tar xz --no-same-owner --strip-components=1 -C /src/python/ && \
+# use built openssl
+  rm -f /usr/lib/x86_64-linux-gnu/libssl.so* /usr/bin/openssl && \
+  ln -s /build/usr/lib/x86_64-linux-gnu/libssl.so* /usr/lib/x86_64-linux-gnu/ && \
+  ln -s /build/usr/bin/openssl /usr/bin/openssl && \
+  #echo '/build/usr/lib/x86_64-linux-gnu' > /etc/ld.so.conf.d/00_build.conf && \
+  #ldconfig && \
+# iptables
+  install --directory /src/iptables && \
+  curl --silent --location --retry 3 "https://www.netfilter.org/projects/iptables/files/iptables-${IPTABLES_VERSION}.tar.bz2" \
+    | tar xj --no-same-owner --strip-components=1 -C /src/iptables && \
+  cd /src/iptables && \
+  ./configure LDFLAGS="-Wl,-rpath=/usr/lib/x86_64-linux-gnu" \
+    --quiet \
+    --prefix="/usr" \
+    --libdir="/usr/lib/$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+    --with-xtlibdir="/usr/lib/$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)/xtables" \
+    --enable-connlabel \
+    --enable-bpf-compiler \
+    --enable-nfsynproxy \
+    --disable-devel \
+    --disable-libipq \
+    --disable-nftables \
+    --disable-shared && \
+  make --silent -j "$(getconf _NPROCESSORS_ONLN)" && \
+  make --silent install DESTDIR=/build INSTALL='install -p' && \
+  find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  cd - && \
+# openvpn
+  install --directory /src/openvpn && \
+  curl --silent --location --retry 3 "https://swupdate.openvpn.org/community/releases/openvpn-${OPENVPN_VERSION}.tar.gz" \
+    | tar xz --no-same-owner --strip-components=1 -C /src/openvpn && \
+  cd /src/openvpn && \
+  ./configure LDFLAGS="-Wl,-rpath=/usr/lib/x86_64-linux-gnu" \
+    --quiet \
+    --prefix="/usr" \
+    --libdir="/usr/lib/$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+    --with-crypto-library=openssl \
+    --enable-iproute2 \
+    --enable-pkcs11 \
+    --enable-shared \
+    --enable-x509-alt-username \
+    --disable-debug \
+    --disable-static && \
+  make --silent -j "$(getconf _NPROCESSORS_ONLN)" && \
+  make --silent install DESTDIR=/build INSTALL='install -p' && \
+  find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  cd - && \
+# golang
+  install --directory --owner=root --group=root --mode=0755 /opt/golang && \
+  curl --silent --location --retry 3 "https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz" \
+    | tar xz --no-same-owner --strip-components=1 -C /opt/golang/ && \
+# python2
+  install --directory /src/python && \
+  curl --silent --location --retry 3 "https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-${PYTHON_VERSION}.tgz" \
+    | tar xz --no-same-owner --strip-components=1 -C /src/python/ && \
   cd /src/python && \
   rm -rf Modules/expat && \
   rm -rf Modules/zlib && \
   for d in darwin libffi libffi_arm_wince libffi_msvc libffi_osx; do rm -r Modules/_ctypes/${d}; done && \
   for f in md5module.c md5.c shamodule.c sha256module.c sha512module.c; do rm Modules/${f}; done && \
-  CFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security" LDFLAGS="-Wl,-z,relro" ./configure \
-    --build="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+  ./configure \
+    CFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security" \
+    LDFLAGS="-Wl,-z,relro,-rpath=/usr/lib/x86_64-linux-gnu" \
     --quiet \
-    --prefix="" \
+    --prefix="/usr" \
     --enable-ipv6 \
     --enable-shared \
     --enable-unicode=ucs4 \
@@ -64,35 +164,43 @@ RUN \
     --with-system-expat \
     --with-system-ffi \
     --with-ensurepip=install && \
-  make --silent && \
-  make --silent install DESTDIR=/build && \
-  ln -s /build/bin/python2.7 /bin/python2.7 && \
+  make --silent -j "$(getconf _NPROCESSORS_ONLN)" && \
+  make --silent install DESTDIR=/build INSTALL='install -p' && \
+  #find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  #find /build -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
   cd - && \
-  mkdir -p /opt/golang && \
-  curl -sL --retry 3 --insecure "https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz" | tar xz --no-same-owner --strip-components=0 -C /opt/golang/ && \
-  PATH=$PATH:/opt/golang/go/bin GOPATH=/opt/golang GOBIN=/build/bin go get -u github.com/pritunl/pritunl-dns && \
-  PATH=$PATH:/opt/golang/go/bin GOPATH=/opt/golang GOBIN=/build/bin go get -u github.com/pritunl/pritunl-web && \
-  mkdir /src/pritunl && \
-  curl -sL --retry 3 --insecure "https://github.com/pritunl/pritunl/archive/${PRITUNL_VERSION}.tar.gz" | tar xz --no-same-owner --strip-components=1 -C /src/pritunl/ && \
+# use built python
+  #rm -f /usr/lib/x86_64-linux-gnu/libpython*.so* /usr/bin/python* && \
+  #ln -s /build/usr/lib/x86_64-linux-gnu/libpython*.so* /usr/lib/x86_64-linux-gnu/ && \
+  ln -s /build/usr/bin/python2.7 /usr/bin/python2.7 && \
+# pritunl
+  PATH=$PATH:/opt/golang/bin GOBIN=/build/usr/bin go get -u github.com/pritunl/pritunl-dns && \
+  PATH=$PATH:/opt/golang/bin GOBIN=/build/usr/bin go get -u github.com/pritunl/pritunl-web && \
+  install --directory /src/pritunl && \
+  curl -sL --retry 3 --insecure "https://github.com/pritunl/pritunl/archive/${PRITUNL_VERSION}.tar.gz" \
+    | tar xz --no-same-owner --strip-components=1 -C /src/pritunl/ && \
   cd /src/pritunl && \
-  for f in $(grep -Rl 'var/lib/pritunl' /src/pritunl/*); do sed -i 's,var/lib/pritunl,data/pritunl,g' ${f}; done && \
-  PATH=$PATH:/build/bin LD_LIBRARY_PATH=/build/lib /bin/python2.7 -E setup.py --quiet build --no-systemd && \
-  PATH=$PATH:/build/bin LD_LIBRARY_PATH=/build/lib CFLAGS=-I/build/include CPPFLAGS=-I/build/include LDFLAGS=-L/build/lib pip install --quiet --requirement requirements.txt && \
-  PATH=$PATH:/build/bin LD_LIBRARY_PATH=/build/lib /bin/python2.7 -E setup.py --quiet install --no-systemd --root /build/ --prefix "" && \
+  for f in $(grep -Rl 'var/lib/pritunl' ./*); do sed -i 's,var/lib/pritunl,data/pritunl,g' ${f}; done && \
+  for f in $(grep -Rl 'var/log' ./*); do sed -i 's,var/log,data/pritunl/log,g' ${f}; done && \
+  sed -i -e '/log_path/ s/:.*/: "",/' data/etc/pritunl.conf && \
+  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" python2.7 -E setup.py --quiet build --no-systemd && \
+  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" CFLAGS="-I/build/usr/include" CPPFLAGS="-I/build/usr/include" LDFLAGS="-L/build/usr/lib" pip install --quiet --requirement requirements.txt && \
+  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" python2.7 -E setup.py --quiet install --no-systemd --root /build/ --prefix "/usr" && \
   mv /build/etc/pritunl.conf /build/etc/pritunl.conf.orig && \
   ln -s /data/pritunl/pritunl.conf /build/etc/pritunl.conf && \
+  find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  find /build -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
   cd - && \
-  rm -rf /build/include /build/share /build/build && \
-  find /build/ -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
-  mkdir -p /build/run/systemd && \
+# system settings
+  install --directory --owner=root --group=root --mode=0755 /build/run/systemd && \
   echo 'docker' > /build/run/systemd/container && \
-  curl -sL --retry 3 --insecure "https://raw.githubusercontent.com/fscm/tools/master/lddcp/lddcp" -o ./lddcp && \
+# lddcp
+  curl --silent --location --retry 3 "https://raw.githubusercontent.com/fscm/tools/master/lddcp/lddcp" -o ./lddcp && \
   chmod +x ./lddcp && \
   ./lddcp $(for f in `find /build/ -type f -executable`; do echo "-p $f "; done) $(for f in `find /lib/x86_64-linux-gnu/ \( -name 'libnss*' -o -name 'libresolv*' \)`; do echo "-l $f "; done) -d /build && \
-  curl -sL --retry 3 --insecure "https://busybox.net/downloads/binaries/${BUSYBOX_VERSION}-i686/busybox" -o /build/bin/busybox && \
-  chmod +x /build/bin/busybox && \
-  for p in [ [[ basename cat cp date diff du echo env free grep ip killall less ln ls mkdir mknod mktemp more mv ping ps rm sed sort stty sysctl tr; do ln -s busybox /build/bin/${p}; done && \
-  ln -s /bin/ip /build/sbin/ip
+# ca certificates
+  install --owner=root --group=root --mode=0644 --target-directory=/build/etc/ssl/certs /etc/ssl/certs/*.pem && \
+  chroot /build openssl rehash /etc/ssl/certs
 
 
 
@@ -110,8 +218,12 @@ EXPOSE \
 COPY --from=build \
   /build .
 
-VOLUME ["/data/pritunl"]
+VOLUME ["/data"]
 
-ENTRYPOINT ["/bin/run"]
+WORKDIR /data
+
+ENV LANG=C.UTF-8
+
+ENTRYPOINT ["/usr/bin/run"]
 
 CMD ["help"]

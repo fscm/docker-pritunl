@@ -13,7 +13,7 @@ services:
     container_name: my_mongodb
     image: "fscm/mongodb:latest"
     volumes:
-      - "mongodb_data:/data/mongodb"
+      - "mongodb_data:/data"
     ports:
       - "27017:27017"
     command: ["start"]
@@ -22,7 +22,7 @@ services:
     privileged: true
     image: "fscm/pritunl:latest"
     volumes:
-      - "pritunl_data:/data/pritunl"
+      - "pritunl_data:/data"
     ports:
       - '80:80'
       - '443:443'
