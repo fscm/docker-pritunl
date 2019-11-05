@@ -1,20 +1,14 @@
 # Pritunl for Docker
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
-[![Docker Stars](https://img.shields.io/docker/stars/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
-[![Docker Build Status](https://img.shields.io/docker/cloud/build/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
+Docker image with Pritunl.
 
-A small Pritunl image that can be used to start a Pritunl server.
+## Synopsis
 
-## Supported tags
+This script will create a Docker image with Pritunl installed and with all
+of the required initialisation scripts.
 
-- `1.29.1979.98`, `latest`
-
-## What is Pritunl?
-
-> Pritunl is the most secure VPN server available and the only VPN server to offer up to five layers of authentication.
-
-*from* [pritunl.com](https://pritunl.com/)
+The Docker image resulting from this script should be the one used to
+instantiate a Pritunl server.
 
 ## Getting Started
 
@@ -31,6 +25,33 @@ Docker installation instructions can be found
 [here](https://docs.docker.com/install/).
 
 ### Usage
+
+In order to create a Docker image using this Dockerfile you need to run the
+`docker` command with a few options.
+
+```
+docker image build --squash --force-rm --no-cache --quiet --tag <USER>/<IMAGE>:<TAG> <PATH>
+```
+
+* `<USER>` - *[required]* The user that will own the container image (e.g.: "johndoe").
+* `<IMAGE>` - *[required]* The container name (e.g.: "pritunl").
+* `<TAG>` - *[required]* The container tag (e.g.: "latest").
+* `<PATH>` - *[required]* The location of the Dockerfile folder.
+
+A build example:
+
+```
+docker image build --squash --force-rm --no-cache --quiet --tag johndoe/my_pritunl:latest .
+```
+
+To clean the _<none>_ image(s) left by the `--squash` option the following
+command can be used:
+
+```
+docker image rm `docker image ls --filter "dangling=true" --quiet`
+```
+
+### Instantiate a Container
 
 In order to end up with a functional Pritunl service - after having build
 the container - some configurations have to be performed.
@@ -72,7 +93,7 @@ the folder in place of the volume name.
 To configure the Pritunl server the `init` command must be used.
 
 ```
-docker container run --volume PRITUNL_VOL:/data:rw --rm fscm/pritunl:latest [options] init
+docker container run --volume <PRITUNL_VOL>:/data:rw --rm <USER>/<IMAGE>:<TAG> [options] init
 ```
 
 * `-m <URI>` - *[required]* The MongoDB URI (e.g.: mongodb://mongodb.host:27017/pritunl).
@@ -82,7 +103,7 @@ After this step the Pritunl server should be configured and ready to use.
 An example on how to configure the Pritunl server:
 
 ```
-docker container run --volume my_pritunl:/data:rw --rm fscm/pritunl:latest -m mongodb://mongodb:27017/pritunl init
+docker container run --volume my_pritunl:/data:rw --rm johndoe/my_pritunl:latest -m mongodb://mongodb:27017/pritunl init
 ```
 
 **Note:** This command will output the **SetupKey** and the default
@@ -96,7 +117,7 @@ After configuring the Pritunl server the same can now be started.
 Starting the Pritunl server can be done with the `start` command.
 
 ```
-docker container run --volume PRITUNL_VOL:/data:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun fscm/pritunl:latest start
+docker container run --volume <PRITUNL_VOL>:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun <USER>/<IMAGE>:<TAG> start
 ```
 
 The Docker options `--privileged` and`--device=/dev/net/tun` are required for
@@ -109,13 +130,13 @@ the server
 An example on how the Pritunl service can be started:
 
 ```
-docker container run --volume my_pritunl:/data:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun --name my_pritunl fscm/pritunl:latest start
+docker container run --volume my_pritunl:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun --name my_pritunl johndoe/my_pritunl:latest start
 ```
 
 To see the output of the container that was started use the following command:
 
 ```
-docker container attach CONTAINER_ID
+docker container attach <CONTAINER_ID>
 ```
 
 Use the `ctrl+p` `ctrl+q` command sequence to detach from the container.
@@ -128,13 +149,13 @@ the command used to perform the initial start was as indicated before).
 To stop the server use the following command:
 
 ```
-docker container stop CONTAINER_ID
+docker container stop <CONTAINER_ID>
 ```
 
 To start the server again use the following command:
 
 ```
-docker container start CONTAINER_ID
+docker container start <CONTAINER_ID>
 ```
 
 ### Pritunl Status
@@ -143,13 +164,50 @@ The Pritunl server status can be check by looking at the Unbound server output
 data using the docker command:
 
 ```
-docker container logs CONTAINER_ID
+docker container logs <CONTAINER_ID>
 ```
 
-## Build
+### Add Tags to the Docker Image
 
-Build instructions can be found
-[here](https://github.com/fscm/docker-pritunl/blob/master/README.build.md).
+Additional tags can be added to the image using the following command:
+
+```
+docker image tag <image_id> <user>/<image>:<extra_tag>
+```
+
+### Push the image to Docker Hub
+
+After adding an image to Docker, that image can be pushed to a Docker
+registry... Like Docker Hub.
+
+Make sure that you are logged in to the service.
+
+```
+docker login
+```
+
+When logged in, an image can be pushed using the following command:
+
+```
+docker image push <user>/<image>:<tag>
+```
+
+Extra tags can also be pushed.
+
+```
+docker image push <user>/<image>:<extra_tag>
+```
+
+## Contributing
+
+1. Fork it!
+2. Create your feature branch: `git checkout -b my-new-feature`
+3. Commit your changes: `git commit -am 'Add some feature'`
+4. Push to the branch: `git push origin my-new-feature`
+5. Submit a pull request
+
+Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details on how
+to contribute to this project.
 
 ## Versioning
 
@@ -162,3 +220,8 @@ available, see the [tags on this repository](https://github.com/fscm/docker-prit
 
 See also the list of [contributors](https://github.com/fscm/docker-pritunl/contributors)
 who participated in this project.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE)
+file for details
