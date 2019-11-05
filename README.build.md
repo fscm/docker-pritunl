@@ -44,11 +44,17 @@ A build example:
 docker image build --squash --force-rm --no-cache --quiet --tag johndoe/my_pritunl:latest .
 ```
 
-To clean the _<none>_ image(s) left by the `--squash` option the following
+To clean any _<none>_ image(s) left by the build process the following
 command can be used:
 
 ```
 docker image rm `docker image ls --filter "dangling=true" --quiet`
+```
+
+You can also use the following command to achieve the same result:
+
+```
+docker image prune -f
 ```
 
 ### Instantiate a Container
