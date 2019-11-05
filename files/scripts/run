@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Shell script to start the Pritunl Docker image.
 #
@@ -38,7 +38,7 @@ PRITUNL_CONF="${__PRITUNL_DATA__}/pritunl.conf"
 
 
 # Usage
-function show_usage() {
+show_usage() {
   echo "Usage: ${BASENAME} [options] (help|init|start)"
   echo "  help:"
   echo "    <none>"
@@ -69,14 +69,14 @@ done
 shift $((OPTIND-1))
 
 for command in "${@}"; do
-  case "${command,,}" in
-    help)
+  case "${command}" in
+    [Hh][Ee][Ll][Pp])
       ACTION_HELP=1
       ;;
-    init)
+    [Ii][Nn][Ii][Tt])
       ACTION_INIT=1
       ;;
-    start)
+    [Ss][Tt][Aa][Rr][Tt])
       ACTION_START=1
       ;;
     *)
@@ -87,71 +87,76 @@ done
 
 
 # Check arguments
-if [[ $# -eq 0 ]]; then
+if [ $# -eq 0 ]; then
   show_usage
   exit 3
 fi
-if ! ((ACTION_HELP+ACTION_INIT+ACTION_START)); then
+if [ "$((ACTION_HELP+ACTION_INIT+ACTION_START))" -eq 0 ]; then
   show_usage
   exit 0
 fi
 
 
 # Check permissions
-if [[ $EUID -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
   echo >&2 "  [ERROR] This script requires privileged access to system files"
   exit 4
 fi
 
 
 # === HELP ===
-if [[ "${ACTION_HELP}" -gt 0 ]]; then
+if [ "${ACTION_HELP}" -gt 0 ]; then
   show_usage
   exit 0
 fi
 
 
 # === INIT ===
-if [[ "${ACTION_INIT}" -gt 0 ]]; then
+if [ "${ACTION_INIT}" -gt 0 ]; then
 
   # Check requirements
-  if [[ "x${MONGODB_URI}" = "x" ]]; then
+  if [ "x${MONGODB_URI}" = "x" ]; then
     echo >&2 "  [ERROR] The MongoDB URI (-m) option is mandatory."
     exit 5
   fi
 
+  # Create configuration dir
+  if ! [ -d "${__PRITUNL_DATA__}" ]; then
+    mkdir -p -m 0755 ${__PRITUNL_DATA__}
+  fi
+
   # Backup configuration files or copy if it does not exist yet
-  if [[ -f ${PRITUNL_CONF} ]]; then
+  if [ -f "${PRITUNL_CONF}" ]; then
     cp "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck"
   else
     cp "/etc/pritunl.conf.orig" "${PRITUNL_CONF}"
   fi
 
   # set Pritunl MongoDB URI
-  #if ! [[ "x${MONGODB_URI}" = "x" ]]; then
-  if [[ "${MONGODB_URI}" =~ ^((mongodb)://)?(([0-9a-zA-Z]+:[0-9a-zA-Z]+)@)?([0-9a-zA-Z\.\-]+)(:([0-9]+))?/([0-9a-zA-Z\.\-]+)(\?[=\&0-9a-zA-Z]+)?$ ]]; then
-    MONGODB_URI_PROTO=${BASH_REMATCH[2]:-mongodb}
-    MONGODB_URI_CREDENTIALS=${BASH_REMATCH[3]}
-    MONGODB_URI_ADDRESS=${BASH_REMATCH[5]}
-    MONGODB_URI_PORT=${BASH_REMATCH[7]:-27017}
-    MONGODB_URI_DB=${BASH_REMATCH[8]}
-    MONGODB_URI_OPTIONS=${BASH_REMATCH[9]}
-  else
+  eval $(echo "$MONGODB_URI" | sed -n -r -e "s,^((mongodb)://)?(([0-9a-zA-Z]+:[0-9a-zA-Z]+)@)?([0-9a-zA-Z\.\-]+)(:([0-9]+))?/([0-9a-zA-Z\.\-]+)(\?[=\&0-9a-zA-Z]+)?$,MONGODB_URI_PROTO='\2' MONGODB_URI_CREDENTIALS='\3' MONGODB_URI_ADDRESS='\5' MONGODB_URI_PORT='\7' MONGODB_URI_DB='\8' MONGODB_URI_OPTIONS='\9',p")
+  if [ "x${MONGODB_URI_ADDRESS}" = "x" ]; then
     echo >&2 "  [ERROR] Invalid MongoDB URI."
     exit 6
+  else
+    MONGODB_URI="${MONGODB_URI_PROTO:-mongodb}://${MONGODB_URI_CREDENTIALS}${MONGODB_URI_ADDRESS}:${MONGODB_URI_PORT:-27017}/${MONGODB_URI_DB}${MONGODB_URI_OPTIONS}"
   fi
-  /bin/pritunl set-mongodb "${MONGODB_URI_PROTO}://${MONGODB_URI_CREDENTIALS}${MONGODB_URI_ADDRESS}:${MONGODB_URI_PORT}/${MONGODB_URI_DB}${MONGODB_URI_OPTIONS}"
-  #sed -i "/mongodb_uri/s|: .*$|: \"${MONGODB_URI_PROTO}://${MONGODB_URI_CREDENTIALS}${MONGODB_URI_ADDRESS}:${MONGODB_URI_PORT}/${MONGODB_URI_DB}${MONGODB_URI_OPTIONS}\"|" "${PRITUNL_CONF}"
-  #fi
+  /bin/pritunl set-mongodb "${MONGODB_URI}"
 
   # Get setup-key
-  echo -e "==================================\nSetupKey:\n `/bin/pritunl setup-key 2>/dev/null` \n=================================="
+  echo "=================================="
+  echo "SetupKey:"
+  /bin/pritunl setup-key 2>/dev/null
+  echo "=================================="
 
   # Get default credentials
-  echo -e "==================================\n `/bin/pritunl default-password` \n=================================="
+  echo "=================================="
+  /bin/pritunl default-password
+  echo "=================================="
 
   # Clean up unneeded backups
-  diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" &> /dev/null && rm -f "${PRITUNL_CONF}.${__TS__}.bck" || true
+  if [ -f "${PRITUNL_CONF}.${__TS__}.bck" ]; then
+    diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" 2>&1 > /dev/null && rm -f "${PRITUNL_CONF}.${__TS__}.bck" || true
+  fi
 
   # All done
   echo "  [INFO] Configuration(s) successfully updated"
@@ -159,28 +164,28 @@ fi
 
 
 # === START ===
-if [[ "${ACTION_START}" -gt 0 ]]; then
+if [ "${ACTION_START}" -gt 0 ]; then
 
   # Create temporary dir (if needed)
-  if ! [[ -d /tmp ]]; then
+  if ! [ -d /tmp ]; then
     mkdir -p -m 1777 /tmp
   fi
 
   # Create run dir (if needed)
-  if ! [[ -d /var/run ]]; then
+  if ! [ -d /var/run ]; then
     mkdir -p -m 0755 /var/run
   fi
 
   # Create required device(s)
-  if ! [[ -d /dev/net ]]; then
+  if ! [ -d /dev/net ]; then
     mkdir -p -m 755 /dev/net
   fi
-  if ! [[ -c /dev/net/tun ]]; then
+  if ! [ -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
   fi
 
   # Start the Pritunl server
-  if [[ -f "${PRITUNL_CONF}" ]]; then
+  if [ -f "${PRITUNL_CONF}" ]; then
     /bin/pritunl start --conf ${PRITUNL_CONF}
   else
     echo >&2 "  [ERROR] Pritunl configuration not found."
