@@ -30,7 +30,7 @@ In order to create a Docker image using this Dockerfile you need to run the
 `docker` command with a few options.
 
 ```
-docker image build --squash --force-rm --no-cache --quiet --tag <USER>/<IMAGE>:<TAG> <PATH>
+docker image build --force-rm --no-cache --quiet --tag <USER>/<IMAGE>:<TAG> <PATH>
 ```
 
 * `<USER>` - *[required]* The user that will own the container image (e.g.: "johndoe").
@@ -41,7 +41,7 @@ docker image build --squash --force-rm --no-cache --quiet --tag <USER>/<IMAGE>:<
 A build example:
 
 ```
-docker image build --squash --force-rm --no-cache --quiet --tag johndoe/my_pritunl:latest .
+docker image build --force-rm --no-cache --quiet --tag johndoe/my_pritunl:latest .
 ```
 
 To clean any _<none>_ image(s) left by the build process the following
