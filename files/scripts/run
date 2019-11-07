@@ -155,7 +155,7 @@ if [ "${ACTION_INIT}" -gt 0 ]; then
 
   # Clean up unneeded backups
   if [ -f "${PRITUNL_CONF}.${__TS__}.bck" ]; then
-    diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" 2>&1 > /dev/null && rm -f "${PRITUNL_CONF}.${__TS__}.bck" || true
+    diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" > /dev/null 2>&1 && rm -f "${PRITUNL_CONF}.${__TS__}.bck" || true
   fi
 
   # All done
