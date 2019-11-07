@@ -8,7 +8,8 @@ A small Pritunl image that can be used to start a Pritunl server.
 
 ## Supported tags
 
-- `1.29.1979.98`, `latest`
+- `1.29.1979.98`
+- `1.29.2232.32`, `latest`
 
 ## What is Pritunl?
 
