@@ -55,18 +55,22 @@ RUN \
     tar \
     tk-dev \
     zlib1g-dev \
-    2>&1 > /dev/null && \
+    > /dev/null 2>&1 && \
 # build structure
   for folder in bin sbin lib lib64; do install --directory --owner=root --group=root --mode=0755 /build/usr/${folder}; ln -s usr/${folder} /build/${folder}; done && \
   for folder in tmp data; do install --directory --owner=root --group=root --mode=1777 /build/${folder}; done && \
+# copy tests
+  #install --directory --owner=root --group=root --mode=0755 /build/usr/bin && \
+  install --owner=root --group=root --mode=0755 --target-directory=/build/usr/bin /root/tests/* && \
 # copy scripts
   install --owner=root --group=root --mode=0755 --target-directory=/build/usr/bin /root/scripts/* && \
 # busybox
   curl --silent --location --retry 3 "https://busybox.net/downloads/binaries/${BUSYBOX_VERSION}-i686-uclibc/busybox" \
     -o /build/usr/bin/busybox && \
   chmod +x /build/usr/bin/busybox && \
-  for p in [ arp basename cat cp date diff dirname du env free getopt grep gzip hostname id ifconfig ip ipaddr iptunnel kill killall less ln ls mkdir mknod mktemp more mv nameif netstat pgrep ping ps pwd rm route sed sh slattach sort stty sysctl tar tr wget; do ln /build/usr/bin/busybox /build/usr/bin/${p}; done && \
-  for p in arp ifconfig ip ipaddr iptunnel nameif netstat route slattach; do ln -s /build/usr/bin/busybox /usr/bin/${p}; done && \
+  for p in [ basename cat cp date diff dirname du env free getopt grep gzip hostname id ip kill killall less ln ls mkdir mknod mktemp more mv netstat pgrep ping ps pwd rm sed sh sort stty sysctl tar tr wget; do ln /build/usr/bin/busybox /build/usr/bin/${p}; done && \
+  for p in arp ifconfig ip ipaddr iptunnel nameif route slattach; do ln /build/usr/bin/busybox /build/usr/sbin/${p}; done && \
+  for p in arp ifconfig ip ipaddr iptunnel nameif route slattach; do ln -s /build/usr/bin/busybox /usr/sbin/${p}; done && \
 # openssl
   install --directory /src/openssl && \
   curl --silent --location --retry 3 "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
@@ -152,7 +156,7 @@ RUN \
   for f in md5module.c md5.c shamodule.c sha256module.c sha512module.c; do rm Modules/${f}; done && \
   ./configure \
     CFLAGS="-Wdate-time -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security" \
-    LDFLAGS="-Wl,-z,relro,-rpath=/usr/lib/x86_64-linux-gnu" \
+    LDFLAGS="-Wl,-z,relro" \
     --quiet \
     --prefix="/usr" \
     --enable-ipv6 \
@@ -167,7 +171,8 @@ RUN \
   make --silent -j "$(getconf _NPROCESSORS_ONLN)" && \
   make --silent install DESTDIR=/build INSTALL='install -p' && \
   #find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
-  #find /build -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
+  find /build -depth \( \( -type d -a \( -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  find /build -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
   cd - && \
 # use built python
   #rm -f /usr/lib/x86_64-linux-gnu/libpython*.so* /usr/bin/python* && \
@@ -177,18 +182,18 @@ RUN \
   PATH=$PATH:/opt/golang/bin GOBIN=/build/usr/bin go get -u github.com/pritunl/pritunl-dns && \
   PATH=$PATH:/opt/golang/bin GOBIN=/build/usr/bin go get -u github.com/pritunl/pritunl-web && \
   install --directory /src/pritunl && \
-  curl -sL --retry 3 --insecure "https://github.com/pritunl/pritunl/archive/${PRITUNL_VERSION}.tar.gz" \
+  curl --silent --location --retry 3 "https://github.com/pritunl/pritunl/archive/${PRITUNL_VERSION}.tar.gz" \
     | tar xz --no-same-owner --strip-components=1 -C /src/pritunl/ && \
   cd /src/pritunl && \
   for f in $(grep -Rl 'var/lib/pritunl' ./*); do sed -i 's,var/lib/pritunl,data/pritunl,g' ${f}; done && \
   for f in $(grep -Rl 'var/log' ./*); do sed -i 's,var/log,data/pritunl/log,g' ${f}; done && \
   sed -i -e '/log_path/ s/:.*/: "",/' data/etc/pritunl.conf && \
-  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" python2.7 -E setup.py --quiet build --no-systemd && \
+  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" /usr/bin/python2.7 -E setup.py --quiet build --no-systemd && \
   PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" CFLAGS="-I/build/usr/include" CPPFLAGS="-I/build/usr/include" LDFLAGS="-L/build/usr/lib" pip install --quiet --requirement requirements.txt && \
-  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" python2.7 -E setup.py --quiet install --no-systemd --root /build/ --prefix "/usr" && \
+  PATH="$PATH:/build/usr/bin" LD_LIBRARY_PATH="/build/usr/lib" /usr/bin/python2.7 -E setup.py --quiet install --no-systemd --root /build --prefix "/usr" && \
   mv /build/etc/pritunl.conf /build/etc/pritunl.conf.orig && \
   ln -s /data/pritunl/pritunl.conf /build/etc/pritunl.conf && \
-  find /build -depth \( \( -type d -a \( -name include -o -name pkgconfig -o -name share \) \) -o \( -type f -a \( -name '*.a' -o -name '*.la' -o -name '*.dist' \) \) \) -exec rm -rf '{}' + && \
+  find /build -depth -type d -name include -exec rm -rf '{}' + && \
   find /build -depth \( \( -type d -a \( -name test -o -name tests \) \) -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \) -exec rm -rf '{}' + && \
   cd - && \
 # system settings
