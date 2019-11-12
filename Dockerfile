@@ -68,7 +68,7 @@ RUN \
   curl --silent --location --retry 3 "https://busybox.net/downloads/binaries/${BUSYBOX_VERSION}-i686-uclibc/busybox" \
     -o /build/usr/bin/busybox && \
   chmod +x /build/usr/bin/busybox && \
-  for p in [ basename cat cp date diff dirname du env free getopt grep gzip hostname id ip kill killall less ln ls mkdir mknod mktemp more mv netstat pgrep ping ps pwd rm sed sh sort stty sysctl tar tr wget; do ln /build/usr/bin/busybox /build/usr/bin/${p}; done && \
+  for p in [ basename cat chmod cp date diff dirname du env free getopt grep gzip hostname id ip kill killall less ln ls mkdir mknod mktemp more mv netstat pgrep ping printf ps pwd rm sed sh sort stty sysctl tar tr wget; do ln /build/usr/bin/busybox /build/usr/bin/${p}; done && \
   for p in arp ifconfig ip ipaddr iptunnel nameif route slattach; do ln /build/usr/bin/busybox /build/usr/sbin/${p}; done && \
   for p in arp ifconfig ip ipaddr iptunnel nameif route slattach; do ln -s /build/usr/bin/busybox /usr/sbin/${p}; done && \
 # openssl

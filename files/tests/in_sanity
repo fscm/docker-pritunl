@@ -11,58 +11,50 @@
 # terms of the MIT License.
 #
 
-# Variables
+echo '=== Docker Build Test ==='
 
-echo "=== Docker Build Test ==="
-
-echo -n "[TEST] Check if iptables is installed... "
-iptables --version > /dev/null 2>&1
-if [ "$?" -eq "0" ]; then
+printf "[TEST] Check if iptables is installed... "
+if iptables --version > /dev/null 2>&1; then
   echo 'OK'
 else
   echo 'Failed'
   exit 1
 fi
 
-echo -n "[TEST] Check if OpenSSL is installed... "
-openssl version > /dev/null 2>&1
-if [ "$?" -eq "0" ]; then
+printf '[TEST] Check if OpenSSL is installed... '
+if openssl version > /dev/null 2>&1; then
   echo 'OK'
 else
   echo 'Failed'
   exit 2
 fi
 
-echo -n "[TEST] Check if Root Certificates are installed... "
-(echo | openssl s_client -connect google.com:443 2>&1) | grep -q 'Verify return code: 0 (ok)'
-if [ "$?" -eq "0" ]; then
+printf '[TEST] Check if Root Certificates are installed... '
+if (echo | openssl s_client -connect google.com:443 2>&1) | grep -q 'Verify return code: 0 (ok)'; then
   echo 'OK'
 else
   echo 'Failed'
   exit 3
 fi
 
-echo -n "[TEST] Check if OpenVPN is installed... "
-openvpn --show-ciphers > /dev/null 2>&1
-if [ "$?" -eq "0" ]; then
+printf '[TEST] Check if OpenVPN is installed... '
+if openvpn --show-ciphers > /dev/null 2>&1; then
   echo 'OK'
 else
   echo 'Failed'
   exit 4
 fi
 
-echo -n "[TEST] Check if Python is installed... "
-python --version > /dev/null 2>&1
-if [ "$?" -eq "0" ]; then
+printf '[TEST] Check if Python is installed... '
+if python --version > /dev/null 2>&1; then
   echo 'OK'
 else
   echo 'Failed'
   exit 5
 fi
 
-echo -n "[TEST] Check if Pritunl is installed... "
-pritunl version > /dev/null 2>&1
-if [ "$?" -eq "0" ]; then
+printf '[TEST] Check if Pritunl is installed... '
+if pritunl version > /dev/null 2>&1; then
   echo 'OK'
 else
   echo 'Failed'

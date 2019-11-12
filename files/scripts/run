@@ -22,13 +22,13 @@ ACTION_HELP=0
 ACTION_INIT=0
 ACTION_START=0
 
-MONGODB_URI=
-MONGODB_URI_DB=
-MONGODB_URI_PORT=
-MONGODB_URI_PROTO=
-MONGODB_URI_ADDRESS=
-MONGODB_URI_OPTIONS=
-MONGODB_URI_CREDENTIALS=
+#MONGODB_URI=
+#MONGODB_URI_DB=
+#MONGODB_URI_PORT=
+#MONGODB_URI_PROTO=
+#MONGODB_URI_ADDRESS=
+#MONGODB_URI_OPTIONS=
+#MONGODB_URI_CREDENTIALS=
 
 __PRITUNL_DATA__="/data/pritunl"
 
@@ -122,7 +122,8 @@ if [ "${ACTION_INIT}" -gt 0 ]; then
 
   # Create configuration dir
   if ! [ -d "${__PRITUNL_DATA__}" ]; then
-    mkdir -p -m 0755 ${__PRITUNL_DATA__}
+    mkdir -p ${__PRITUNL_DATA__}
+    chmod 0755 ${__PRITUNL_DATA__}
   fi
 
   # Backup configuration files or copy if it does not exist yet
@@ -155,7 +156,7 @@ if [ "${ACTION_INIT}" -gt 0 ]; then
 
   # Clean up unneeded backups
   if [ -f "${PRITUNL_CONF}.${__TS__}.bck" ]; then
-    diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" > /dev/null 2>&1 && rm -f "${PRITUNL_CONF}.${__TS__}.bck" || true
+    (diff -q "${PRITUNL_CONF}" "${PRITUNL_CONF}.${__TS__}.bck" > /dev/null 2>&1 && rm -f "${PRITUNL_CONF}.${__TS__}.bck") || true
   fi
 
   # All done
@@ -168,17 +169,19 @@ if [ "${ACTION_START}" -gt 0 ]; then
 
   # Create temporary dir (if needed)
   if ! [ -d /tmp ]; then
-    mkdir -p -m 1777 /tmp
+    mkdir -m 1777 /tmp
   fi
 
   # Create run dir (if needed)
   if ! [ -d /var/run ]; then
-    mkdir -p -m 0755 /var/run
+    mkdir -p /var/run
+    chmod 0755 /dev /var/run
   fi
 
   # Create required device(s)
   if ! [ -d /dev/net ]; then
-    mkdir -p -m 755 /dev/net
+    mkdir -p /dev/net
+    chmod 0755 /dev /dev/net
   fi
   if ! [ -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
