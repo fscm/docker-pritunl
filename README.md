@@ -44,7 +44,7 @@ Docker container.
 - `start` - Start the Pritunl service.
 
 To store the configuration settings of the Pritunl server as well as the users
-information a volumes should be created and added to the container when running
+information a volume should be created and added to the container when running
 the same.
 
 #### Creating Volumes
