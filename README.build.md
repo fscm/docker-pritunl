@@ -166,7 +166,7 @@ docker container start <CONTAINER_ID>
 
 ### Pritunl Status
 
-The Pritunl server status can be check by looking at the Unbound server output
+The Pritunl server status can be check by looking at the Pritunl server output
 data using the docker command:
 
 ```
