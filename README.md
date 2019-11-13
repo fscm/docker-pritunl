@@ -56,7 +56,7 @@ Creating volumes can be done using the `docker` tool. To create a volume use
 the following command:
 
 ```
-docker volume create --name <VOLUME_NAME>
+docker volume create --name VOLUME_NAME
 ```
 
 Two create the required volume the following command can be used:
@@ -73,7 +73,7 @@ the folder in place of the volume name.
 To configure the Pritunl server the `init` command must be used.
 
 ```
-docker container run --volume PRITUNL_VOL:/data:rw --rm fscm/pritunl:latest [options] init
+docker container run --volume PRITUNL_VOL:/data:rw --rm fscm/pritunl [options] init
 ```
 
 * `-m <URI>` - *[required]* The MongoDB URI (e.g.: mongodb://mongodb.host:27017/pritunl).
@@ -97,7 +97,7 @@ After configuring the Pritunl server the same can now be started.
 Starting the Pritunl server can be done with the `start` command.
 
 ```
-docker container run --volume PRITUNL_VOL:/data:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun fscm/pritunl:latest start
+docker container run --volume PRITUNL_VOL:/data:rw --detach --publish 1194:1194/udp --publish 1194:1194 --publish 443:443 --publish 80:80 --privileged --device=/dev/net/tun fscm/pritunl:latest start
 ```
 
 The Docker options `--privileged` and`--device=/dev/net/tun` are required for
@@ -110,7 +110,7 @@ the server
 An example on how the Pritunl service can be started:
 
 ```
-docker container run --volume my_pritunl:/data:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun --name my_pritunl fscm/pritunl:latest start
+docker container run --volume my_pritunl:/data:rw --detach --publish 1194:1194/udp --publish 1194:1194 --publish 443:443 --publish 80:80 --privileged --device=/dev/net/tun --name my_pritunl fscm/pritunl:latest start
 ```
 
 To see the output of the container that was started use the following command:

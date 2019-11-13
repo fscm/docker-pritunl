@@ -5,7 +5,7 @@ Docker image with Pritunl.
 ## Synopsis
 
 This script will create a Docker image with Pritunl installed and with all
-of the required initialisation scripts.
+of the required initialization scripts.
 
 The Docker image resulting from this script should be the one used to
 instantiate a Pritunl server.
@@ -70,7 +70,7 @@ Docker container.
 - `start` - Start the Pritunl service.
 
 To store the configuration settings of the Pritunl server as well as the users
-information a volumes should be created and added to the container when running
+information a volume should be created and added to the container when running
 the same.
 
 #### Creating Volumes
@@ -123,7 +123,7 @@ After configuring the Pritunl server the same can now be started.
 Starting the Pritunl server can be done with the `start` command.
 
 ```
-docker container run --volume <PRITUNL_VOL>:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun <USER>/<IMAGE>:<TAG> start
+docker container run --volume <PRITUNL_VOL>:/data/pritunl:rw --detach --publish 1194:1194/udp --publish 1194:1194 --publish 443:443 --publish 80:80 --privileged --device=/dev/net/tun <USER>/<IMAGE>:<TAG> start
 ```
 
 The Docker options `--privileged` and`--device=/dev/net/tun` are required for
@@ -136,7 +136,7 @@ the server
 An example on how the Pritunl service can be started:
 
 ```
-docker container run --volume my_pritunl:/data/pritunl:rw --detach --interactive --tty -p 1194:1194/udp -p 1194:1194 -p 443:443 -p 80:80 --privileged --device=/dev/net/tun --name my_pritunl johndoe/my_pritunl:latest start
+docker container run --volume my_pritunl:/data/pritunl:rw --detach --publish 1194:1194/udp --publish 1194:1194 --publish 443:443 --publish 80:80 --privileged --device=/dev/net/tun --name my_pritunl johndoe/my_pritunl:latest start
 ```
 
 To see the output of the container that was started use the following command:
