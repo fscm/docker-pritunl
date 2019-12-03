@@ -85,7 +85,7 @@ the following command:
 docker volume create --name <VOLUME_NAME>
 ```
 
-Two create the required volume the following command can be used:
+To create the required volume the following command can be used:
 
 ```
 docker volume create --name my_pritunl
