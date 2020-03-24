@@ -1,9 +1,5 @@
 # Pritunl for Docker
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
-[![Docker Stars](https://img.shields.io/docker/stars/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
-[![Docker Build Status](https://img.shields.io/docker/cloud/build/fscm/pritunl.svg?color=black&logo=docker&logoColor=white&style=flat-square)](https://hub.docker.com/r/fscm/pritunl)
-
 A small Pritunl image that can be used to start a Pritunl server.
 
 ## Supported tags
